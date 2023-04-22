@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class playerController : MonoBehaviour
 {
@@ -9,9 +10,17 @@ public class playerController : MonoBehaviour
 
 	private Rigidbody2D rb;
 
+	public int maxHealth = 100;
+	public int currentHealth;
+
+	public TextMeshProUGUI healthText;
+
 	// Start is called before the first frame update
 	void Start()
     {
+		currentHealth = maxHealth;
+		UpdateHealthText();
+
 		rb = GetComponent<Rigidbody2D>();
 	}
 
@@ -40,6 +49,29 @@ public class playerController : MonoBehaviour
 	{
 		if (col.gameObject.tag == "Ground")
 			rb.velocity = Vector2.zero;
+
+		if (col.gameObject.CompareTag("Enemy"))
+		{
+			TakeDamage(5);
+		}
+	}
+	public void TakeDamage(int damage)
+	{
+		currentHealth -= damage;
+		if (currentHealth <= 0)
+		{
+			Die();
+		}
+		UpdateHealthText();
 	}
 
+	private void Die()
+	{
+		Destroy(gameObject);
+	}
+
+	private void UpdateHealthText()
+	{
+		healthText.text = "Health: " + currentHealth.ToString();
+	}
 }
