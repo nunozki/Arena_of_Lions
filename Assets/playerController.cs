@@ -2,18 +2,23 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class playerController : MonoBehaviour
 {
 
-	public float speed = 20f; // the player's movement speed
+	public float speed = 10f; // the player's movement speed
 
-	private Rigidbody2D rb;
+	public GameObject GameManagerGO;
+	private Rigidbody2D rb2d;
 
 	public int maxHealth = 100;
 	public int currentHealth;
 
 	public TextMeshProUGUI healthText;
+
+	public float delay = 3;
+	float timer;
 
 	// Start is called before the first frame update
 	void Start()
@@ -21,7 +26,7 @@ public class playerController : MonoBehaviour
 		currentHealth = maxHealth;
 		UpdateHealthText();
 
-		rb = GetComponent<Rigidbody2D>();
+		rb2d = GetComponent<Rigidbody2D>();
 	}
 
 	// Update is called once per frame
@@ -29,28 +34,18 @@ public class playerController : MonoBehaviour
 	{
 		float xInput = Input.GetAxis("Horizontal");
 		float yInput = Input.GetAxis("Vertical");
-		rb.velocity = new Vector2(xInput * speed, yInput * speed);
+		rb2d.velocity = new Vector2(xInput * speed, yInput * speed);
 
-
-		if (Input.GetMouseButtonDown(0))
-		{
-			Collider2D[] cols = Physics2D.OverlapCircleAll(transform.position, 1f);
-			foreach (Collider2D col in cols)
-			{
-				if (col != null && col.tag == "Enemy")
-				{
-					Destroy(col.gameObject);
-				}
-			}
-		}
+		Vector3 mousePos = Input.mousePosition;
+		mousePos.z = 10.0f;
+		Vector3 lookDir = Camera.main.ScreenToWorldPoint(mousePos) - transform.position;
+		float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90.0f;
+		transform.rotation = Quaternion.Euler(0.0f, 0.0f, angle);
 	}
 	
 	void OnCollisionEnter2D(Collision2D col)
 	{
-		if (col.gameObject.tag == "Ground")
-			rb.velocity = Vector2.zero;
-
-		if (col.gameObject.CompareTag("Enemy"))
+		if (col.gameObject.tag == "Enemy")
 		{
 			TakeDamage(5);
 		}
@@ -60,14 +55,9 @@ public class playerController : MonoBehaviour
 		currentHealth -= damage;
 		if (currentHealth <= 0)
 		{
-			Die();
+			GameManagerGO.GetComponent<GameManager>().RestartScene();
 		}
 		UpdateHealthText();
-	}
-
-	private void Die()
-	{
-		Destroy(gameObject);
 	}
 
 	private void UpdateHealthText()

@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using TMPro;
 
 public class EnemyAI : MonoBehaviour
 {
@@ -17,6 +19,24 @@ public class EnemyAI : MonoBehaviour
 			{
 				transform.position = Vector2.MoveTowards(transform.position, player.position, moveSpeed * Time.deltaTime);
 			}
+		}
+	}
+
+	private void OnCollisionEnter2D(Collision2D collision)
+	{
+		if (collision.gameObject.CompareTag("Bullet"))
+		{
+
+			KillCounter killCounter = FindObjectOfType<KillCounter>();
+			if (killCounter != null)
+			{
+				killCounter.IncrementKills();
+			}
+
+			Destroy(collision.gameObject);
+
+			// Destroy the projectile clone
+			Destroy(gameObject);
 		}
 	}
 }
