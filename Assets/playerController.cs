@@ -22,7 +22,7 @@ public class playerController : MonoBehaviour
 
 	// Start is called before the first frame update
 	void Start()
-    {
+	{
 		currentHealth = maxHealth;
 		UpdateHealthText();
 
@@ -42,7 +42,7 @@ public class playerController : MonoBehaviour
 		float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90.0f;
 		transform.rotation = Quaternion.Euler(0.0f, 0.0f, angle);
 	}
-	
+
 	void OnCollisionEnter2D(Collision2D col)
 	{
 		if (col.gameObject.tag == "Enemy")
