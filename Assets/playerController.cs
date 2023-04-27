@@ -20,6 +20,10 @@ public class playerController : MonoBehaviour
 	public float delay = 3;
 	float timer;
 
+	// Store the touch IDs for movement and rotation
+	private int movementTouchID = -1;
+	private int rotationTouchID = -1;
+
 	// Start is called before the first frame update
 	void Start()
 	{
@@ -32,15 +36,84 @@ public class playerController : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
-		float xInput = Input.GetAxis("Horizontal");
-		float yInput = Input.GetAxis("Vertical");
+		// Get touch input for movement and rotation
+		float xInput = 0f;
+		float yInput = 0f;
+		Vector3 lookDir = Vector3.zero;
+		foreach (Touch touch in Input.touches)
+		{
+			// Check if touch is for movement
+			if (movementTouchID == -1 && touch.phase == TouchPhase.Began)
+			{
+				Vector2 touchPos = Camera.main.ScreenToWorldPoint(touch.position);
+				if (touchPos.x < transform.position.x)
+				{
+					xInput = -1f;
+				}
+				else if (touchPos.x > transform.position.x)
+				{
+					xInput = 1f;
+				}
+				if (touchPos.y < transform.position.y)
+				{
+					yInput = -1f;
+				}
+				else if (touchPos.y > transform.position.y)
+				{
+					yInput = 1f;
+				}
+				movementTouchID = touch.fingerId;
+			}
+			// Check if touch is for rotation
+			else if (rotationTouchID == -1 && touch.fingerId != movementTouchID && touch.phase == TouchPhase.Began)
+			{
+				Vector3 touchPos = Camera.main.ScreenToWorldPoint(touch.position);
+				touchPos.z = 10.0f;
+				lookDir = touchPos - transform.position;
+				float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90.0f;
+				transform.rotation = Quaternion.Euler(0.0f, 0.0f, angle);
+				rotationTouchID = touch.fingerId;
+			}
+			// Update movement touch
+			else if (touch.fingerId == movementTouchID)
+			{
+				Vector2 touchPos = Camera.main.ScreenToWorldPoint(touch.position);
+				if (touchPos.x < transform.position.x)
+				{
+					xInput = -1f;
+				}
+				else if (touchPos.x > transform.position.x)
+				{
+					xInput = 1f;
+				}
+				if (touchPos.y < transform.position.y)
+				{
+					yInput = -1f;
+				}
+				else if (touchPos.y > transform.position.y)
+				{
+					yInput = 1f;
+				}
+				if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
+				{
+					movementTouchID = -1;
+				}
+			}
+			// Update rotation touch
+			else if (touch.fingerId == rotationTouchID)
+			{
+				Vector3 touchPos = Camera.main.ScreenToWorldPoint(touch.position);
+				touchPos.z = 10.0f;
+				lookDir = touchPos - transform.position;
+				float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90.0f;
+				transform.rotation = Quaternion.Euler(0.0f, 0.0f, angle);
+				if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
+				{
+					rotationTouchID = -1;
+				}
+			}
+		}
 		rb2d.velocity = new Vector2(xInput * speed, yInput * speed);
-
-		Vector3 mousePos = Input.mousePosition;
-		mousePos.z = 10.0f;
-		Vector3 lookDir = Camera.main.ScreenToWorldPoint(mousePos) - transform.position;
-		float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90.0f;
-		transform.rotation = Quaternion.Euler(0.0f, 0.0f, angle);
 	}
 
 	void OnCollisionEnter2D(Collision2D col)
@@ -65,3 +138,9 @@ public class playerController : MonoBehaviour
 		healthText.text = "Health: " + currentHealth.ToString();
 	}
 }
+
+
+
+
+
+

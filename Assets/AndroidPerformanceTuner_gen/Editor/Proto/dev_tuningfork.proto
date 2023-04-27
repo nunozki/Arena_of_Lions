@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option csharp_namespace = "Google.Android.PerformanceTuner";
+
+enum Scene {
+    SCENE_INVALID = 0;
+}
+
+message Annotation {
+    Scene scene = 1;
+}
+
+message FidelityParams {
+    int32 level = 1;
+}

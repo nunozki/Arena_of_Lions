@@ -6,7 +6,7 @@ public class PlayerShooting : MonoBehaviour
 {
 	public GameObject projectilePrefab;
 	public float projectileSpeed = 10.0f;
-	public float fireRate = 0.5f;
+	public float fireRate = 10.0f;
 
 	private float fireTimer;
 
@@ -14,7 +14,7 @@ public class PlayerShooting : MonoBehaviour
 	{
 		fireTimer += Time.deltaTime;
 
-		if (Input.GetButtonDown("Fire1") && fireTimer >= fireRate)
+		if (fireTimer >= fireRate)
 		{
 			fireTimer = 0.0f;
 
