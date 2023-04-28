@@ -7,7 +7,8 @@ using UnityEngine.SceneManagement;
 public class playerController : MonoBehaviour
 {
 
-	public float speed = 10f; // the player's movement speed
+	public float moveSpeed = 5f; // the player's movement speed
+	public float rotationSpeed = 5f;
 
 	public GameObject GameManagerGO;
 	private Rigidbody2D rb2d;
@@ -20,13 +21,23 @@ public class playerController : MonoBehaviour
 	public float delay = 3;
 	float timer;
 
+	private Camera mainCamera;
+
 	// Store the touch IDs for movement and rotation
-	private int movementTouchID = -1;
-	private int rotationTouchID = -1;
+	private int touchID = -1;
+
+	private float lastFireTime = 0f;
+	public float projectileSpeed = 10f;
+	public float fireRate = 0.5f;
+	public GameObject projectilePrefab;
+
+	public Transform bulletSpawn;
 
 	// Start is called before the first frame update
 	void Start()
 	{
+		mainCamera = Camera.main;
+
 		currentHealth = maxHealth;
 		UpdateHealthText();
 
@@ -36,84 +47,100 @@ public class playerController : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
-		// Get touch input for movement and rotation
-		float xInput = 0f;
-		float yInput = 0f;
-		Vector3 lookDir = Vector3.zero;
-		foreach (Touch touch in Input.touches)
+		Move();
+		Rotate();
+		Shoot();
+	}
+
+	private void Move()
+	{
+		if (Input.touchCount > 0)
 		{
-			// Check if touch is for movement
-			if (movementTouchID == -1 && touch.phase == TouchPhase.Began)
+			foreach (Touch touch in Input.touches)
 			{
-				Vector2 touchPos = Camera.main.ScreenToWorldPoint(touch.position);
-				if (touchPos.x < transform.position.x)
+				if (touch.phase == TouchPhase.Began)
 				{
-					xInput = -1f;
+					Vector2 touchPos = mainCamera.ScreenToWorldPoint(touch.position);
+					//if (GetComponent<Collider2D>().OverlapPoint(touchPos))
+					{
+						touchID = touch.fingerId;
+					}
 				}
-				else if (touchPos.x > transform.position.x)
+				else if (touch.phase == TouchPhase.Moved && touch.fingerId == touchID)
 				{
-					xInput = 1f;
+					Vector2 moveDir = (touch.position - touch.deltaPosition) - touch.position;
+					rb2d.velocity =  (moveDir.normalized * moveSpeed * Time.deltaTime) * -1;
+					Debug.Log("Velocity:" + rb2d.velocity.magnitude);
 				}
-				if (touchPos.y < transform.position.y)
+				else if (touch.phase == TouchPhase.Ended && touch.fingerId == touchID)
 				{
-					yInput = -1f;
-				}
-				else if (touchPos.y > transform.position.y)
-				{
-					yInput = 1f;
-				}
-				movementTouchID = touch.fingerId;
-			}
-			// Check if touch is for rotation
-			else if (rotationTouchID == -1 && touch.fingerId != movementTouchID && touch.phase == TouchPhase.Began)
-			{
-				Vector3 touchPos = Camera.main.ScreenToWorldPoint(touch.position);
-				touchPos.z = 10.0f;
-				lookDir = touchPos - transform.position;
-				float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90.0f;
-				transform.rotation = Quaternion.Euler(0.0f, 0.0f, angle);
-				rotationTouchID = touch.fingerId;
-			}
-			// Update movement touch
-			else if (touch.fingerId == movementTouchID)
-			{
-				Vector2 touchPos = Camera.main.ScreenToWorldPoint(touch.position);
-				if (touchPos.x < transform.position.x)
-				{
-					xInput = -1f;
-				}
-				else if (touchPos.x > transform.position.x)
-				{
-					xInput = 1f;
-				}
-				if (touchPos.y < transform.position.y)
-				{
-					yInput = -1f;
-				}
-				else if (touchPos.y > transform.position.y)
-				{
-					yInput = 1f;
-				}
-				if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
-				{
-					movementTouchID = -1;
-				}
-			}
-			// Update rotation touch
-			else if (touch.fingerId == rotationTouchID)
-			{
-				Vector3 touchPos = Camera.main.ScreenToWorldPoint(touch.position);
-				touchPos.z = 10.0f;
-				lookDir = touchPos - transform.position;
-				float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90.0f;
-				transform.rotation = Quaternion.Euler(0.0f, 0.0f, angle);
-				if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
-				{
-					rotationTouchID = -1;
+					touchID = -1;
+					rb2d.velocity = Vector2.zero;
 				}
 			}
 		}
-		rb2d.velocity = new Vector2(xInput * speed, yInput * speed);
+		else
+		{
+			rb2d.velocity = Vector2.zero;
+		}
+	}
+
+	private void Rotate()
+	{
+		if (Input.touchCount > 0)
+		{
+			foreach (Touch touch in Input.touches)
+			{
+				if (touch.phase == TouchPhase.Began)
+				{
+					Vector2 touchPos = mainCamera.ScreenToWorldPoint(touch.position);
+					//if (GetComponent<Collider2D>().OverlapPoint(touchPos))
+					{
+						touchID = touch.fingerId;
+					}
+				}
+				else if (touch.phase == TouchPhase.Moved && touch.fingerId == touchID)
+				{
+					Vector3 touchPos = mainCamera.ScreenToWorldPoint(touch.position);
+					touchPos.z = 0f;
+
+					Vector3 lookDir = touchPos - transform.position;
+					float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90f;
+					Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+					transform.rotation = Quaternion.Slerp(transform.rotation, rotation, rotationSpeed * Time.deltaTime);
+					Debug.Log("Rotation:" + transform.rotation);
+				}
+				else if (touch.phase == TouchPhase.Ended && touch.fingerId == touchID)
+				{
+					touchID = -1;
+				}
+			}
+		}
+	}
+
+	private void Shoot()
+	{
+		if (Input.GetMouseButton(0) && Time.time - lastFireTime >= fireRate)
+		{
+			lastFireTime = Time.time;
+
+			GameObject projectile = Instantiate(projectilePrefab, bulletSpawn.position, Quaternion.identity);
+			Rigidbody2D projectileRb = projectile.GetComponent<Rigidbody2D>();
+			projectile.transform.rotation = Quaternion.Euler(0f, 0f, transform.rotation.eulerAngles.z);
+
+			Vector2 shootDirection = new Vector2(Mathf.Cos(transform.rotation.eulerAngles.z * Mathf.Deg2Rad),
+												 Mathf.Sin(transform.rotation.eulerAngles.z * Mathf.Deg2Rad));
+
+			projectileRb.AddForce(shootDirection * projectileSpeed, ForceMode2D.Impulse);
+
+			StartCoroutine(DestroyProjectile(projectile));
+		}
+	}
+
+	private IEnumerator DestroyProjectile(GameObject projectile)
+	{
+		yield return new WaitForSeconds(2f);
+		Destroy(projectile);
 	}
 
 	void OnCollisionEnter2D(Collision2D col)
